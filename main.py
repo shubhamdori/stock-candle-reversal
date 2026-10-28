@@ -75,3 +75,26 @@ if __name__ == "__main__":
         user_period = "5d"
         
     check_candle_reversal(user_ticker, interval=user_interval, period=user_period)
+
+import time
+
+if __name__ == "__main__":
+    print("=== LIVE STOCK CANDLE REVERSAL CHECKER (Continuous Mode) ===")
+    user_ticker = input("Enter Stock Ticker (e.g., AAPL, RELIANCE.NS): ").strip() or "AAPL"
+    user_interval = input("Enter Time Interval [1m, 5m, 15m, 1h, 1d] (default '5m'): ").strip() or "5m"
+    
+    # Choose check frequency based on interval (e.g., check every 60 seconds)
+    check_delay = 60 
+
+    print(f"\n[INFO] Starting live monitor for {user_ticker}. Press Ctrl+C to stop.")
+    
+    try:
+        while True:
+            # Runs the check
+            check_candle_reversal(user_ticker, interval=user_interval, period="2d")
+            
+            print(f"\n[INFO] Waiting {check_delay} seconds for the next check...")
+            time.sleep(check_delay)
+            
+    except KeyboardInterrupt:
+        print("\n[INFO] Monitoring stopped by user.")
