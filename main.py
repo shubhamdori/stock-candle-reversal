@@ -2,20 +2,33 @@ import pandas as pd
 import yfinance as yf
 
 def check_candle_reversal(ticker_symbol, interval="1d", period="5d"):
-    print(f"\n[INFO] Fetching live data for '{ticker_symbol.upper()}' (Interval: {interval}, Period: {period})...")
+    # Clean up input
+    ticker_symbol = ticker_symbol.strip().upper()
     
-    # Download live/recent data from Yahoo Finance
-    df = yf.download(ticker_symbol, period=period, interval=interval, progress=False)
+    # Optional helper: if user enters common Indian tickers without suffix, add .NS
+    indian_common = ["RELIANCE", "TCS", "INFY", "SBIN", "HDFCBANK", "ICICIBANK", "TATAMOTORS", "ITC"]
+    if ticker_symbol in indian_common:
+        ticker_symbol += ".NS"
+        print(f"[INFO] Automatically added exchange suffix -> Using {ticker_symbol}")
+
+    print(f"\n[INFO] Fetching live data for '{ticker_symbol}' (Interval: {interval}, Period: {period})...")
+    
+    try:
+        df = yf.download(ticker_symbol, period=period, interval=interval, progress=False)
+    except Exception as e:
+        print(f"[ERROR] Exception occurred while fetching data: {e}")
+        return
     
     if df.empty or len(df) < 2:
-        print("[ERROR] Not enough data fetched. Please check if the ticker symbol is valid.")
+        print(f"[ERROR] Not enough data fetched for '{ticker_symbol}'.")
+        print("Tip: Ensure the ticker symbol is correct (e.g., use 'RELIANCE.NS' for NSE, or 'AAPL' for US stocks).")
         return
     
     # Handle multi-index columns if returned by yfinance
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
     
-    # Extract the last two completed candles (1st Candle = penultimate, 2nd Candle = latest)
+    # Extract the last two completed candles
     c1 = df.iloc[-2]
     c2 = df.iloc[-1]
     
@@ -33,7 +46,7 @@ def check_candle_reversal(ticker_symbol, interval="1d", period="5d"):
     print(f"  Open={c2_open:.2f} | High={c2_high:.2f} | Low={c2_low:.2f} | Close={c2_close:.2f}")
     print("-" * 50)
     
-    # Applying the Excel Formula Logic: AND(D2>D3, E2<E3, B3<=E2, B3>D2)
+    # Applying Excel Formula Logic: AND(D2>D3, E2<E3, B3<=E2, B3>D2)
     cond1 = c1_low > c2_low         # 1st Low > 2nd Low
     cond2 = c1_close < c2_close     # 1st Close < 2nd Close
     cond3 = c2_open <= c1_close     # 2nd Open <= 1st Close
@@ -41,7 +54,6 @@ def check_candle_reversal(ticker_symbol, interval="1d", period="5d"):
     
     is_reversal = cond1 and cond2 and cond3 and cond4
     
-    # Output Result
     result = "Reversal" if is_reversal else "Non Reversal"
     print(f"Remarks / Signal: **{result}**")
     print("-" * 50)
@@ -50,11 +62,9 @@ def check_candle_reversal(ticker_symbol, interval="1d", period="5d"):
 
 if __name__ == "__main__":
     print("=== LIVE STOCK CANDLE REVERSAL CHECKER ===")
-    
-    # Take user input for live customization
     user_ticker = input("Enter Stock Ticker (e.g., AAPL, RELIANCE.NS, TSLA): ").strip()
     if not user_ticker:
-        user_ticker = "AAPL"  # Default fallback
+        user_ticker = "AAPL"
         
     user_interval = input("Enter Time Interval [1m, 5m, 15m, 1h, 1d] (default '1d'): ").strip()
     if not user_interval:
@@ -64,5 +74,4 @@ if __name__ == "__main__":
     if not user_period:
         user_period = "5d"
         
-    # Run the function with user parameters
     check_candle_reversal(user_ticker, interval=user_interval, period=user_period)
